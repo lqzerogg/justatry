@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ title }}</title>
+        <link rel="stylesheet" href="/css/bootstrap.css">
+        <script type="text/javascript" src="/js/jquery.js"></script>
+  </head>
+  <body>
+  	<div class="container">
+  		<div class="row">
+  			<h1>Hello WebSocket!</h1>
+  		</div>
+  		<div class="row">
+  			<p>Welcome to WebSocket</p>
+  		</div>
+  		<div class="row">
+	  		<div class="col-md-6">
+	  			<form class="form-horizontal" id="#form" role="form" onsubmit="return false;">
+				  <div class="form-group">
+				    <label for="inputEmail3" class="col-sm-3 control-label">Just Code it: </label>
+				    <div class="col-sm-9">
+				      <input type="text" class="form-control" id="words" placeholder="any words">
+				    </div>
+				  </div>
+				  <div class="form-group">
+				    <div class="col-sm-offset-2 col-sm-10">				      	
+				      	<button class="btn btn-primary" id="open">open webSocket</button>
+				    	<butotn class="btn btn-danger" id="close">close webSocket</butotn>
+				    	<button type="button" class="btn btn-default" id="clear">clear log</button>
+				    </div>
+				  </div>
+				</form>
+	  		</div>  			
+  		</div>
+  		<dir class="row">
+  			<ol id="response">
+    	
+		    </ol>
+  		</dir>
+  	</div>
+    
+    
+
+    
+    <script>
+    	function log(str) {
+    		$('#response').append('<li>' + str + '</li>');
+    	}
+    	function str2ab(str) {
+			var buf = new ArrayBuffer(str.length*2); // 2 bytes for each char
+			var bufView = new Uint16Array(buf);
+			for (var i=0, strLen=str.length; i<strLen; i++) {
+				bufView[i] = str.charCodeAt(i);
+			}
+			return buf;
+    	}
+    	function blob2Str(blob, cb) {
+			var reader = new FileReader();
+			reader.onload = function(event){
+				cb(event.target.result);
+			}; // data url!
+             reader.readAsText(blob);               
+         };
+    	jQuery(function($) {
+
+    		var host = 'ws://192.168.151.29:7777', protocal = 'xmpp', binaryType = 'blob',
+    			extensions = '', socket;
+
+    		$('#form').on('submit', function(event) {
+    			event.preventDefault();
+    			return false;
+    		});
+    		$('#words').on('keypress', function(event) {
+    			if(event.keyCode === 13) {
+    				event.preventDefault();
+    			}
+    		});
+
+    		$('#open').on('click', function(event) {
+    			$(this).prop('disabled', true).addClass('disabled');
+    			$('#close').prop('disabled', false).removeClass('disabled');
+
+	    		log('start to connect: ' + host + '; protocal: ' + protocal);    			
+
+	    		// =================
+	    		socket = new WebSocket(host, protocal);
+	    		socket.binaryType = binaryType;	    		
+		    	socket.onopen = function (event) {
+		    		log('connect success');
+			    	$('#words').on('keydown', function(event) {			    		
+			    		if(event.keyCode === 13) {
+			    			var str = this.value,
+			    				ab = str2ab(str),
+			    				blob = new Blob([str], {type: 'text/plain'});
+			    			this.value = '';
+
+			    			// socket.send(str);
+			    			// socket.send(ab);
+			    			socket.send(blob);
+			    		}
+			    	});
+		    	}
+		    	socket.onmessage = function(event) {
+		    		// log(event.data);
+		    		// log(String.fromCharCode.apply(null, new Uint16Array(event.data)));
+		    		blob2Str(event.data, log);
+		    	}
+		    	socket.onclose = function(event) {
+		    		log('WebSocket close. code: ' + event.code + '; reason: ' + event.reason + '; wasClean: ' + event.wasClean);
+		    	}
+		    	socket.onerror = function(event) {
+		    		console.log(event);
+		    	}		    	
+
+		    	// =================
+    		});
+
+    		$('#close').on('click', function(event) {
+    			$(this).prop('disabled', true).addClass('disabled');
+    			$('#open').prop('disabled', false).removeClass('disabled');
+    			$('#words').off('keydown');
+
+    			//==============
+    			socket.close(4001, 'normal close');
+    			//==============
+    		}).prop('disabled', true).addClass('disabled');
+
+    		$('#clear').on('click', function(event) {
+    			$('#response').empty();
+    		})
+    	});
+    	
+
+    </script>
+  </body>
+</html>
